@@ -14,16 +14,15 @@ models may differ.
 | `system/product/etc/permissions/privapp-permissions-miuihome.xml` | Whitelist of the privileged permissions the launcher requests, generated from its manifest. |
 | `system/product/overlay/MiuiHomeRecentsOverlay/MiuiHomeRecentsOverlay.apk` | Fallback static framework overlay (priority 9999) that sets `config_recentsComponentName` to the launcher's `RecentsActivity`. The installer removes it when the ROM has Xiaomi's own `MiuiHomeLauncherResOverlay`. |
 | `system.prop` | `ro.miui.product.home=com.miui.home`. Also switches the ROM's Recents setting over to the HyperOS launcher. |
-| `service.sh` | Makes `com.miui.home` the home app on every boot, as early as possible, then installs the guard and disables POCO Launcher. |
-| `launcher-guard.sh` | Copied to `/data/adb/service.d/poco_hyperos_launcher_guard.sh`. Enables POCO Launcher again whenever the module is disabled or removed. |
-| `uninstall.sh` | Makes sure the guard is in place when the module is removed. |
-| `customize.sh` | Install-time checks: required files, other enabled modules that replace the launcher, and whether the phone matches the device and Android version the launcher came from. Creates theme whiteouts under KernelSU. |
+| `system/product/priv-app/MiLauncherGlobal` | Hides POCO Launcher's folder: a whiteout (`0:0` character device) under KernelSU, an empty folder with `.replace` under Magisk. Created by the installer. |
+| `service.sh` | Makes `com.miui.home` the home app on every boot, as early as possible. |
+| `customize.sh` | Install-time checks: required files, other enabled modules that replace the launcher, and whether the phone matches the device and Android version the launcher came from. Hides POCO Launcher, creates theme whiteouts under KernelSU, and cleans up after v1.1. |
 | `system/product/media/theme/` + `.replace` | Optional: a ROM's whole theme folder, such as the China default theme. |
 | `module.prop` build details | `launcherVersionName`, `launcherVersionCode`, `launcherCert`, `romBuild`, `romRegion`, `romDevice`, `romAndroid`, `romSdk`, `themeSource`, `builtAt`. KernelSU and Magisk ignore these keys; they're there for bug reports and the installer's checks. |
 
 Nothing is written to the system partitions. KernelSU or Magisk mounts these files at boot, and
-disabling or removing the module undoes all of it. The one change outside the module, POCO Launcher
-being disabled, is undone by the guard on the next boot; see below.
+disabling or removing the module undoes all of it, except that POCO Launcher comes back with a fresh
+layout; see below.
 
 ## Why each piece is needed
 
@@ -42,7 +41,7 @@ POCO phone is never scanned, and the log shows:
 PKMSImpl: Skip scanning package: com.miui.home, path=/product/priv-app/MiuiHome, reason: boot scanning
 ```
 
-Any other folder name avoids the rule, and POCO Launcher can stay where it is.
+Any other folder name avoids the rule.
 
 ### The Recents overlay, and why home and Recents must be the same app
 
@@ -85,23 +84,44 @@ before the system first launches a home screen, so on the tested phone the first
 was already the HyperOS launcher. It runs on every boot, because POCO Launcher can't work as home while
 Recents points at `com.miui.home` anyway.
 
-### Disabling POCO Launcher
+### Hiding POCO Launcher
 
-POCO Launcher can't work while the module is active, but other apps still start its process, for
-example by querying its content providers. It then sits frozen in the background, using memory, and
-handles settings changes whenever Xiaomi thaws it. Both launchers watch `secure navigation_mode` and set
-`global force_fsg_nav_bar` to match it. A frozen POCO Launcher can make that write many seconds later
-and turn gestures off after something else has turned them back on.
+POCO Launcher is built from the same code as `com.miui.home` and declares the same content-provider
+authorities under `com.miui.home.*`. Only one package can own an authority. On the tested phone POCO
+Launcher got 11 of them, and `com.miui.home` kept only those that POCO Launcher declares under its own name instead
+(`launcher.settings`, `launcher.badge`, ...):
 
-So once `com.miui.home` holds the home role, `service.sh` runs `pm disable-user --user 0
-com.mi.android.globallauncher`. Disabling keeps the app's data, so its layout survives. Hiding its APK
-from the module would not: Android drops a system app whose APK disappears, along with its data.
+```
+com.miui.home                                 com.miui.home.launcher.category
+com.miui.home.app.hide                        com.miui.home.launcher.download
+com.miui.home.gesture.enableState             com.miui.home.launcher.search
+com.miui.home.gesture.provider                com.miui.home.launcher.status
+com.miui.home.launcher.bigicon.iconsize       com.miui.home.search.styleData
+com.miui.home.settings.SettingsSearchProvider
+```
 
-Disabling or removing a module runs none of its scripts, so the module can't re-enable POCO Launcher
-itself. Instead, `service.sh` first installs a guard to `/data/adb/service.d/`, which KernelSU and
-Magisk run on every boot. While the module is active, the guard does nothing. When the module is
-disabled or gone, it runs `pm enable`, gives the home role back to POCO Launcher if its holder no
-longer exists, and deletes itself once the module is gone.
+So while POCO Launcher is installed, `com.miui.home`, and anything else that queries these providers,
+starts POCO Launcher's process. A second launcher is then running, and both react to the same settings
+changes, one after the other.
+
+Disabling POCO Launcher (`pm disable-user`, what v1.1 did) stops the process but not the ownership: the
+authorities still belong to POCO Launcher and now resolve to nothing. `com.miui.home` then crashes, for
+example when an app is uninstalled from the home screen:
+
+```
+IllegalArgumentException: Unknown URL content://com.miui.home.launcher.category/favorites
+```
+
+The module therefore hides POCO Launcher's folder, `/product/priv-app/MiLauncherGlobal`. Android drops
+the package at boot, and `com.miui.home`, which declares and implements the same providers, owns all of
+them. Check it with `adb shell dumpsys package providers`. Android also deletes the data of a system app
+whose APK disappears, so POCO Launcher comes back with a fresh layout when the module is disabled or
+removed.
+
+`customize.sh` creates the hiding entry at install time. Under KernelSU it is a whiteout, which both
+KernelSU's own mounting and overlayfs metamodules honour; Magisk gets an empty folder with `.replace`.
+It also undoes v1.1: it enables POCO Launcher again, so it comes back enabled, and deletes v1.1's boot
+script `/data/adb/service.d/poco_hyperos_launcher_guard.sh`.
 
 ### The privileged permission whitelist
 

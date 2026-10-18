@@ -3,7 +3,7 @@
 # HyperOS Launcher for POCO
 
 一个 KernelSU / Magisk 模块：在已 root 的 POCO 手机上，用原版 **HyperOS 桌面**（`com.miui.home`）替换
-POCO 桌面，让主题商店的主题完整生效。全面屏手势和最近任务照常可用。POCO 桌面不会被删除，只是被停用：停用或移除模块后，它会原样回来。
+POCO 桌面，让主题商店的主题完整生效。全面屏手势和最近任务照常可用。模块启用期间 POCO 桌面会被隐藏：停用或移除模块后，它会回来，但桌面布局会重置。
 
 > 本项目不包含任何小米文件。模块需要你用小米官方 ROM 自行构建。本项目与小米无关。
 
@@ -43,7 +43,7 @@ Git、Python 3.10+ 和 adb 的电脑。macOS 和 Linux 上，请把下面命令�
 
 ### 恢复
 
-- 在 KernelSU 管理器中停用或移除模块并重启。POCO 桌面会回来，布局保持不变。
+- 在 KernelSU 管理器中停用或移除模块并重启。POCO 桌面会回来，但桌面布局会重新开始：隐藏期间 Android 会删除它的数据。
 - 卡在黑屏？运行：
   ```bash
   adb shell su -c "touch /data/adb/modules/poco_hyperos_launcher/disable"

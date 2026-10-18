@@ -6,6 +6,8 @@ PERM_XML=$MODPATH/system/product/etc/permissions/privapp-permissions-miuihome.xm
 OVERLAY_APK=$MODPATH/system/product/overlay/MiuiHomeRecentsOverlay/MiuiHomeRecentsOverlay.apk
 XIAOMI_OVERLAY=/product/overlay/MiuiHomeLauncherResOverlay.apk
 THEME=$MODPATH/system/product/media/theme
+POCO_DIR=$MODPATH/system/product/priv-app/MiLauncherGlobal
+POCO_PKG=com.mi.android.globallauncher
 MY_ID=poco_hyperos_launcher
 
 prop() { sed -n "s/^$1=//p" "$MODPATH/module.prop" | head -n 1; }
@@ -85,5 +87,24 @@ if [ -f "$THEME/.replace" ]; then
   ui_print "  After rebooting, re-apply Default in the Theme Store to load it."
 fi
 
-ui_print "- After reboot, POCO Launcher is disabled (its data and layout are kept)."
-ui_print "  Disable or remove this module and reboot to get it back as it was."
+# Hide POCO Launcher. It declares the same content-provider authorities as com.miui.home
+# (com.miui.home.launcher.category, .gesture.provider, ...) and Android gives most of them to POCO
+# Launcher, so com.miui.home starts POCO Launcher's process with every query, and both launchers
+# then react to the same settings changes. Disabling it instead leaves those authorities pointing
+# at nothing, and com.miui.home crashes (v1.1). With its folder hidden, Android drops the package
+# at boot and com.miui.home owns all of them. Magisk honours .replace on an empty folder; under
+# KernelSU a whiteout (a 0:0 character device) also works with overlayfs metamodules.
+mkdir -p "${POCO_DIR%/*}"
+if [ -n "$KSU" ]; then
+  mknod "$POCO_DIR" c 0 0 || abort "! Couldn't create the whiteout for POCO Launcher"
+else
+  mkdir -p "$POCO_DIR" && touch "$POCO_DIR/.replace"
+fi
+
+# Undo v1.1, which disabled POCO Launcher and left a boot script to enable it again. Enable it now,
+# so it comes back enabled whenever this module is turned off, and drop the boot script.
+rm -f /data/adb/service.d/poco_hyperos_launcher_guard.sh
+pm enable --user 0 $POCO_PKG >/dev/null 2>&1
+
+ui_print "- After reboot, POCO Launcher is hidden, and Android deletes its data and layout."
+ui_print "  Disable or remove this module and reboot to get it back, with a fresh layout."

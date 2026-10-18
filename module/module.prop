@@ -1,6 +1,6 @@
 id=poco_hyperos_launcher
 name=HyperOS Launcher for POCO
-version=v1.1
-versionCode=110
+version=v1.2
+versionCode=120
 author=haoyu-UT
-description=Adds the HyperOS launcher (com.miui.home @LAUNCHER_VERSION@) as a system app and points Recents/gestures at it; optionally ships the China default theme. POCO Launcher is disabled meanwhile; disable or remove the module to get it back.
+description=Adds the HyperOS launcher (com.miui.home @LAUNCHER_VERSION@) as a system app and points Recents/gestures at it; optionally ships the China default theme. POCO Launcher is hidden meanwhile; disable or remove the module to get it back (with a fresh layout).
