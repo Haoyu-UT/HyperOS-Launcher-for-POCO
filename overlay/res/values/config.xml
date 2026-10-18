@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- build.py fills this in from the RecentsActivity found in MiuiHome.apk. -->
+    <string name="config_recentsComponentName" translatable="false">@RECENTS_COMPONENT@</string>
+</resources>

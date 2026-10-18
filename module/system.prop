@@ -1,0 +1,3 @@
+# HyperOS apps (Theme Store included) read this to find the system launcher; POCO ROMs set it to
+# com.mi.android.globallauncher.
+ro.miui.product.home=com.miui.home

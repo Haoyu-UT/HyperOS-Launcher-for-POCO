@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static framework overlay: sends Recents and gesture navigation to the HyperOS launcher. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.github.haoyu_ut.hyperoslauncher.recents">
+
+    <overlay
+        android:targetPackage="android"
+        android:isStatic="true"
+        android:priority="9999" />
+
+    <application android:hasCode="false" />
+</manifest>

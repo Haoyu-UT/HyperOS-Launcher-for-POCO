@@ -1,0 +1,43 @@
+# --- Xiaomi files extracted from a ROM (copyrighted; never commit or redistribute) ---
+apk/
+theme/
+*.apk
+# ...except the pre-built Recents overlay, which is this project's own work (no Xiaomi code).
+!overlay/prebuilt/*.apk
+*.mtz
+*.mrm
+*.mra
+*.img
+*.img.*
+*.tgz
+payload.bin
+
+# --- Build output: module zips (contain the Xiaomi APK) and staging ---
+out/
+*.zip
+
+# --- Per-builder secrets and local tools ---
+# Overlay signing key; each builder creates their own on the first build.
+keys/
+*.jks
+*.keystore
+# Android SDK and Java runtime unpacked locally (see README); large and separately licensed.
+toolchain/
+
+# --- Device dumps (may contain installed apps and other personal data) ---
+device-info.txt
+*.logcat
+logcat*.txt
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+
+# --- Editors and OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

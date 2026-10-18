@@ -1,0 +1,18 @@
+# Everything text is stored and checked out with LF. The module's shell scripts run on Android,
+# where CRLF line endings break them, so this must hold even on Windows checkouts.
+* text=auto eol=lf
+
+# Explicit, in case text detection ever guesses wrong.
+*.sh text eol=lf
+*.prop text eol=lf
+*.py text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+module/META-INF/com/google/android/update-binary text eol=lf
+module/META-INF/com/google/android/updater-script text eol=lf
+
+# Binary formats, should any ever be added (screenshots for docs, a prebuilt overlay).
+*.png binary
+*.jpg binary
+*.apk binary
+*.jks binary
