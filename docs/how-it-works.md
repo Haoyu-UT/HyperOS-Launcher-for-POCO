@@ -14,13 +14,16 @@ models may differ.
 | `system/product/etc/permissions/privapp-permissions-miuihome.xml` | Whitelist of the privileged permissions the launcher requests, generated from its manifest. |
 | `system/product/overlay/MiuiHomeRecentsOverlay/MiuiHomeRecentsOverlay.apk` | Fallback static framework overlay (priority 9999) that sets `config_recentsComponentName` to the launcher's `RecentsActivity`. The installer removes it when the ROM has Xiaomi's own `MiuiHomeLauncherResOverlay`. |
 | `system.prop` | `ro.miui.product.home=com.miui.home`. Also switches the ROM's Recents setting over to the HyperOS launcher. |
-| `service.sh` | Makes `com.miui.home` the home app on every boot, as early as possible. |
+| `service.sh` | Makes `com.miui.home` the home app on every boot, as early as possible, then installs the guard and disables POCO Launcher. |
+| `launcher-guard.sh` | Copied to `/data/adb/service.d/poco_hyperos_launcher_guard.sh`. Enables POCO Launcher again whenever the module is disabled or removed. |
+| `uninstall.sh` | Makes sure the guard is in place when the module is removed. |
 | `customize.sh` | Install-time checks: required files, other enabled modules that replace the launcher, and whether the phone matches the device and Android version the launcher came from. Creates theme whiteouts under KernelSU. |
 | `system/product/media/theme/` + `.replace` | Optional: a ROM's whole theme folder, such as the China default theme. |
 | `module.prop` build details | `launcherVersionName`, `launcherVersionCode`, `launcherCert`, `romBuild`, `romRegion`, `romDevice`, `romAndroid`, `romSdk`, `themeSource`, `builtAt`. KernelSU and Magisk ignore these keys; they're there for bug reports and the installer's checks. |
 
 Nothing is written to the system partitions. KernelSU or Magisk mounts these files at boot, and
-disabling the module undoes all of it.
+disabling or removing the module undoes all of it. The one change outside the module, POCO Launcher
+being disabled, is undone by the guard on the next boot; see below.
 
 ## Why each piece is needed
 
@@ -81,6 +84,24 @@ Java. Any signing key works for an overlay on a system partition.
 before the system first launches a home screen, so on the tested phone the first home launch after boot
 was already the HyperOS launcher. It runs on every boot, because POCO Launcher can't work as home while
 Recents points at `com.miui.home` anyway.
+
+### Disabling POCO Launcher
+
+POCO Launcher can't work while the module is active, but other apps still start its process, for
+example by querying its content providers. It then sits frozen in the background, using memory, and
+handles settings changes whenever Xiaomi thaws it. Both launchers watch `secure navigation_mode` and set
+`global force_fsg_nav_bar` to match it. A frozen POCO Launcher can make that write many seconds later
+and turn gestures off after something else has turned them back on.
+
+So once `com.miui.home` holds the home role, `service.sh` runs `pm disable-user --user 0
+com.mi.android.globallauncher`. Disabling keeps the app's data, so its layout survives. Hiding its APK
+from the module would not: Android drops a system app whose APK disappears, along with its data.
+
+Disabling or removing a module runs none of its scripts, so the module can't re-enable POCO Launcher
+itself. Instead, `service.sh` first installs a guard to `/data/adb/service.d/`, which KernelSU and
+Magisk run on every boot. While the module is active, the guard does nothing. When the module is
+disabled or gone, it runs `pm enable`, gives the home role back to POCO Launcher if its holder no
+longer exists, and deletes itself once the module is gone.
 
 ### The privileged permission whitelist
 

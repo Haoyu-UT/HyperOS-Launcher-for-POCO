@@ -5,7 +5,7 @@
 
 The launcher and the Recents overlay always ship together: only the Recents component may open
 the gesture input channel, so whichever launcher is home without it crash-loops. POCO Launcher
-stays installed and untouched, so disabling the module restores it with its layout.
+stays installed but disabled, so disabling or removing the module restores it with its layout.
 
 The overlay ships pre-built in overlay/prebuilt/. Building it needs aapt2, zipalign and apksigner
 (Android SDK build-tools), an android.jar (SDK platforms) and keytool (a JDK or JRE); that only
@@ -49,7 +49,7 @@ KEY_PASS = "android"  # only signs the local overlay; not a secret
 MIUI_CERT_SHA256 = "c9009d01ebf9f5d0302bc71b2fe9aa9a47a432bba17308a3111b75d7b2149025"
 # Only the module's own scripts get LF line endings; theme packages include extensionless binary
 # zips (default/icons, lock_wallpaper, ...) that must be copied byte for byte.
-LF_FILES = {"customize.sh", "service.sh", "module.prop", "system.prop", "update-binary", "updater-script"}
+LF_FILES = {"customize.sh", "service.sh", "uninstall.sh", "launcher-guard.sh", "module.prop", "system.prop", "update-binary", "updater-script"}
 # Replaces the ROM's whole theme folder (".replace"), so global and China assets never mix.
 THEME_DIR = "system/product/media/theme"
 # Left out of the theme folder: the China ROM's optional 小米兰亭 Pro font package. Nothing in the

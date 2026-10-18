@@ -13,12 +13,15 @@ HyperOS 3（Android 16）的 POCO F8 Ultra 上发现，其他 POCO 机型可能�
 | `system/product/etc/permissions/privapp-permissions-miuihome.xml` | 桌面所申请特权权限的白名单，根据其清单文件生成。 |
 | `system/product/overlay/MiuiHomeRecentsOverlay/MiuiHomeRecentsOverlay.apk` | 备用的静态框架 overlay（优先级 9999），把 `config_recentsComponentName` 设为桌面的 `RecentsActivity`。如果 ROM 自带小米的 `MiuiHomeLauncherResOverlay`，安装程序会去掉它。 |
 | `system.prop` | `ro.miui.product.home=com.miui.home`。同时会把 ROM 的最近任务设置切换到 HyperOS 桌面。 |
-| `service.sh` | 每次开机时尽早把 `com.miui.home` 设为默认桌面。 |
+| `service.sh` | 每次开机时尽早把 `com.miui.home` 设为默认桌面，然后安装守护脚本并停用 POCO 桌面。 |
+| `launcher-guard.sh` | 复制到 `/data/adb/service.d/poco_hyperos_launcher_guard.sh`。模块被停用或移除时，重新启用 POCO 桌面。 |
+| `uninstall.sh` | 移除模块时确保守护脚本存在。 |
 | `customize.sh` | 安装时检查：必需文件是否齐全、是否有其他已启用的模块也在替换桌面，以及手机与桌面来源 ROM 的设备和 Android 版本是否一致。在 KernelSU 下创建主题 whiteout。 |
 | `system/product/media/theme/` + `.replace` | 可选：某个 ROM 的完整主题文件夹，例如国行默认主题。 |
 | `module.prop` 中的构建信息 | `launcherVersionName`、`launcherVersionCode`、`launcherCert`、`romBuild`、`romRegion`、`romDevice`、`romAndroid`、`romSdk`、`themeSource`、`builtAt`。KernelSU 和 Magisk 会忽略这些键；它们用于问题反馈和安装时的检查。 |
 
-模块不会写入系统分区。这些文件由 KernelSU 或 Magisk 在开机时挂载，停用模块即可全部撤销。
+模块不会写入系统分区。这些文件由 KernelSU 或 Magisk 在开机时挂载，停用或移除模块即可全部撤销。
+模块之外唯一的改动是停用 POCO 桌面，下次开机时由守护脚本撤销，见下文。
 
 ## 每一部分为什么必要
 
@@ -72,6 +75,21 @@ POCO 的 ROM 其实已经内置了这个切换开关。它带有两个静态框�
 已安装，然后设置 `android.app.role.HOME` 的持有者。角色服务早于系统第一次启动桌面，因此在测试手机上，开机后
 第一次启动的桌面就已经是 HyperOS 桌面。它每次开机都会运行，因为只要最近任务指向 `com.miui.home`，POCO
 桌面本来就无法作为默认桌面工作。
+
+### 停用 POCO 桌面
+
+模块启用期间 POCO 桌面无法工作，但其他应用仍会拉起它的进程，例如查询它的 content provider。之后它在后台被冻结，
+占用内存，并在小米解冻它时才处理设置变化。两个桌面都会监听 `secure navigation_mode`，并据此设置
+`global force_fsg_nav_bar`。被冻结的 POCO 桌面可能在许多秒之后才执行这次写入，在别的程序重新打开手势之后又把它关掉。
+
+因此，一旦 `com.miui.home` 成为默认桌面，`service.sh` 就会运行 `pm disable-user --user 0
+com.mi.android.globallauncher`。停用会保留应用数据，布局因此得以保存。用模块隐藏它的 APK 则不行：系统应用的
+APK 消失后，Android 会连同数据一起删除它。
+
+停用或移除模块时，模块自己的脚本都不会运行，所以模块无法自行重新启用 POCO 桌面。为此，`service.sh` 会先把一个
+守护脚本安装到 `/data/adb/service.d/`，KernelSU 和 Magisk 每次开机都会运行它。模块启用时，守护脚本什么也不做；
+模块被停用或已移除时，它运行 `pm enable`，在默认桌面的持有者已不存在时把默认桌面交还给 POCO 桌面，并在模块移除
+后删除自己。
 
 ### 特权权限白名单
 

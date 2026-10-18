@@ -4,7 +4,8 @@
 
 A KernelSU / Magisk module that replaces POCO Launcher with the stock **HyperOS launcher**
 (`com.miui.home`) on rooted POCO phones, so Theme Store themes apply fully. Gestures and Recents keep
-working. POCO Launcher stays installed: disable the module and it comes back exactly as it was.
+working. POCO Launcher stays installed but disabled: disable or remove the module and it comes back
+exactly as it was.
 
 > No Xiaomi files are included. You build the module from an official Xiaomi ROM yourself. Not affiliated
 > with Xiaomi.
@@ -48,7 +49,8 @@ with Git, Python 3.10+ and adb. On macOS and Linux, use `python3` in the command
 
 ### Undo
 
-- Disable the module in the KernelSU manager and reboot. POCO Launcher returns with its layout intact.
+- Disable or remove the module in the KernelSU manager and reboot. POCO Launcher returns with its layout
+  intact.
 - Stuck on a black screen? Run:
   ```bash
   adb shell su -c "touch /data/adb/modules/poco_hyperos_launcher/disable"

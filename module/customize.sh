@@ -85,4 +85,5 @@ if [ -f "$THEME/.replace" ]; then
   ui_print "  After rebooting, re-apply Default in the Theme Store to load it."
 fi
 
-ui_print "- POCO Launcher stays installed; disable this module to get it back as it was"
+ui_print "- After reboot, POCO Launcher is disabled (its data and layout are kept)."
+ui_print "  Disable or remove this module and reboot to get it back as it was."
